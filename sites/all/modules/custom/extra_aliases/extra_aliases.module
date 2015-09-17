@@ -1,21 +1,8 @@
 <?php
 /**
- * Implements hook_menu().
- */
-/*function extra_aliases_menu() {
-  $items['admin/config/pathauto-extra-aliases'] = array(
-    'title' => 'Configure extra aliases',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('extra_aliases_admin_settings'),
-    'access arguments' => array('administer site configuration'),
-  );
-  return $items;
-}*/
-
-/**
  * Implements hook_node_insert().
  */
-function extra_aliases_node_insert($node) {
+/*function extra_aliases_node_insert($node) {
   dpm($node);
   $path = 'node/' . $node->nid;
   dpm($path);
@@ -25,60 +12,106 @@ function extra_aliases_node_insert($node) {
   $pattern_des = $alias . '/memS';
   create_alias('insert', $pattern_src, $pattern_des, $node->language);
 }
-
+*/
 /**
  * Implements hook_node_update().
  */
-function extra_aliases_node_update($node) {
+/*function extra_aliases_node_update($node) {
   dpm('updating');
   $path = 'node/' . $node->nid;
   $alias = drupal_get_path_alias($path);
   dpm($alias);
   $pattern_src = 'node/' . $node->nid . '/members';
   $pattern_des = $alias . '/memS';
-
+*/
   /*
   $existing_alias = _pathauto_existing_alias_data($pattern_src, $node->language);
   dpm($existing_alias);
   if ($existing_alias) {
   	create_alias('update', $pattern_src, $pattern_des, $node->language);
   }*/
-}
+//}
 
-function create_alias($op, $src, $des, $lang) {
-  // Building the new path alias array.
-  $path = array(
-    'source' => $src,
-    'alias' => $des,
-    'language' => $lang,
-  );
-  /*$path_alias = _pathauto_set_alias($path);*/
-  // Save the path array.
-  $path_alias = path_save($path);
-  dpm($path_alias);
+
+
+/**
+ * Implements hook_path_insert().
+ */
+function extra_aliases_path_insert($path) {
+  dpm($path);
+  if (preg_match("/^node\/[0-9]+$/", $path['source']) === 1) {
+    dpm('node');
+    $alias = drupal_get_path_alias($path['source']);
+    dpm($alias);
+    $pattern_src = $path['source'] . '/members';
+    $pattern_des = $alias . '/memS';
+  	$path = array(
+      'source' => $pattern_src,
+      'alias' => $pattern_des,
+      'language' => $path['language'],
+    );
+    // Save the path array.
+    $path_alias = path_save($path);
+  }
+  if (preg_match("/^node\/[0-9]+$/", $path['source']) === 1) {
+    dpm('user');
+  }
+
+
 }
 
 /**
- * Implements hook_node_delete().
+ * Implements hook_path_update().
  */
-function extra_aliases_node_delete($node) {
-  $mod_status = module_exists('pathauto');
-  dpm($mod_status);
-  /*$pattern_src = 'node/' . $node->nid . '/members';
-  dpm($node);
-  $query = db_select('url_alias', 'u')
-  ->fields('u', array('pid'))
-  ->condition('u.source', $pattern_src)
-  ->condition('source', '%' . db_like($pattern_src) . '%', 'LIKE')
-  ->execute();
-$result = $query->fetchObject();
-dpm($result);*/
+function extra_aliases_path_update($path) {
+  //Checking if its a node path being updated.
+  if (preg_match("/^node\/[0-9]+$/", $path['source']) === 1) {
+  	dpm($path);
+  	/*$alias = drupal_get_path_alias($path['source']);
+    dpm($alias);*/
+    $pattern_src = $path['source'] . '/members';
+    $pattern_des = $path['alias'] . '/memS';
 
 
+    $query = db_select('url_alias', 'u')
+	    ->fields('u', array('pid'))
+        ->condition('source', '%' . db_like($path['source']) . '%', 'LIKE')
+        ->condition('source', $path['source'], '<>')
+        ->execute();
+    $result = $query->fetchObject();
+    dpm($result);
+    foreach ($result as $key => $value) {
+      dpm($value);
+      $path = array(
+  	  'pid' => $value,
+      'source' => $pattern_src,
+      'alias' => $pattern_des,
+      'language' => $path['language'],
+      );
+      dpm($path);
+      // Save the path array.
+      $path_alias = path_save($path);
+    }
+  }
+}
 
-/*$sql = "SELECT pid FROM {url_alias} WHERE source = :source OR source LIKE :source_wildcard";
-  $pids = db_query($sql, array(':source' => $source, ':source_wildcard' => $source . '/%'))->fetchCol();
-  if ($pids) {
-    pathauto_path_delete_multiple($pids);
-  }*/
+/**
+ * Implements hook_path_delete().
+ */
+function extra_aliases_path_delete($path) {
+  dpm('deleted' . $path['pid']);
+  if (!module_exists('pathauto')) {
+  	if (preg_match("/^node\/[0-9]+$/", $path['source']) === 1) {
+      $query = db_select('url_alias', 'u')
+	    ->fields('u', array('pid'))
+        ->condition('source', '%' . db_like($path['source']) . '%', 'LIKE')
+        ->execute();
+      $result = $query->fetchObject();
+      dpm($result);
+      foreach ($result as $key => $value) {
+      	dpm($value);
+      	path_delete($value);
+      }
+  	}
+  }
 }
