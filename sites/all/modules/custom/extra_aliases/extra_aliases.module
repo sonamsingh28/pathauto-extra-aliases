@@ -1,0 +1,84 @@
+<?php
+/**
+ * Implements hook_menu().
+ */
+/*function extra_aliases_menu() {
+  $items['admin/config/pathauto-extra-aliases'] = array(
+    'title' => 'Configure extra aliases',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('extra_aliases_admin_settings'),
+    'access arguments' => array('administer site configuration'),
+  );
+  return $items;
+}*/
+
+/**
+ * Implements hook_node_insert().
+ */
+function extra_aliases_node_insert($node) {
+  dpm($node);
+  $path = 'node/' . $node->nid;
+  dpm($path);
+  $alias = drupal_get_path_alias($path);
+  dpm($alias);
+  $pattern_src = 'node/' . $node->nid . '/members';
+  $pattern_des = $alias . '/memS';
+  create_alias('insert', $pattern_src, $pattern_des, $node->language);
+}
+
+/**
+ * Implements hook_node_update().
+ */
+function extra_aliases_node_update($node) {
+  dpm('updating');
+  $path = 'node/' . $node->nid;
+  $alias = drupal_get_path_alias($path);
+  dpm($alias);
+  $pattern_src = 'node/' . $node->nid . '/members';
+  $pattern_des = $alias . '/memS';
+
+  /*
+  $existing_alias = _pathauto_existing_alias_data($pattern_src, $node->language);
+  dpm($existing_alias);
+  if ($existing_alias) {
+  	create_alias('update', $pattern_src, $pattern_des, $node->language);
+  }*/
+}
+
+function create_alias($op, $src, $des, $lang) {
+  // Building the new path alias array.
+  $path = array(
+    'source' => $src,
+    'alias' => $des,
+    'language' => $lang,
+  );
+  /*$path_alias = _pathauto_set_alias($path);*/
+  // Save the path array.
+  $path_alias = path_save($path);
+  dpm($path_alias);
+}
+
+/**
+ * Implements hook_node_delete().
+ */
+function extra_aliases_node_delete($node) {
+  $mod_status = module_exists('pathauto');
+  dpm($mod_status);
+  /*$pattern_src = 'node/' . $node->nid . '/members';
+  dpm($node);
+  $query = db_select('url_alias', 'u')
+  ->fields('u', array('pid'))
+  ->condition('u.source', $pattern_src)
+  ->condition('source', '%' . db_like($pattern_src) . '%', 'LIKE')
+  ->execute();
+$result = $query->fetchObject();
+dpm($result);*/
+
+
+
+/*$sql = "SELECT pid FROM {url_alias} WHERE source = :source OR source LIKE :source_wildcard";
+  $pids = db_query($sql, array(':source' => $source, ':source_wildcard' => $source . '/%'))->fetchCol();
+  if ($pids) {
+    pathauto_path_delete_multiple($pids);
+  }*/
+}
